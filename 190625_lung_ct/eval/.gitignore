@@ -1,0 +1,4 @@
+.idea
+out
+*.txt
+__pycache__

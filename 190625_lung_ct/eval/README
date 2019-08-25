@@ -1,0 +1,9 @@
+计算模型FROC指标：
+    计算方式：参考https://tianchi.aliyun.com/competition/entrance/231724/information的评估指标
+传参：
+    python noduleCADEvaluationLUNA16.py 标注路径 推理结果路径 保存其他内容的文件夹
+注意：
+	要将结果文件的class改成label
+    现阶段可参考的只有程序输出 和 生成的result.txt
+    保存其他内容的文件夹 内的只是最后一种病理类型的结果
+    现阶段结果测试下来结果 比 阿里官方的结果高,不过在训练集上测试,比较正常
