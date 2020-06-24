@@ -4,7 +4,6 @@ from keras.models import Model
 from keras.applications.mobilenet import MobileNet
 from keras.applications.resnet50 import ResNet50
 from keras.applications.xception import Xception
-from keras.applications.nasnet import NASNetMobile
 
 def mobilenet(pretrained_weights=None, input_size=(224, 224, 3), num_classes=2):
     # If imagenet weights are being loaded, input must have a static square shape
