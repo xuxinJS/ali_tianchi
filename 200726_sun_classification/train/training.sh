@@ -1,10 +1,13 @@
 #!/bin/bash
-TRAIN="/home/xuxin/data/sun/gen/continuum/train"
-VAL="/home/xuxin/data/sun/gen/continuum/val"
-DST="/home/xuxin/model/0627"
-LOG="/home/xuxin/model/0627/log"
+TRAIN="/home/dls1/simple_data/gen_0627/continuum/train"
+VAL="/home/dls1/simple_data/gen_0627/continuum/val"
+DST="/home/dls1/simple_data/gen_0627/con_log"
+LOG="/home/dls1/simple_data/gen_0627/con_log"
 MODEL="xception"
+EPOCH=10
+BATCH=12
 
-python3 training.py -t $TRAIN -v $VAL -m $MODEL -e 1 -b 8 -dst $DST -log $LOG
+
+python3 training.py -t $TRAIN -v $VAL -m $MODEL -e $EPOCH -b $BATCH -dst $DST -log $LOG
 
 

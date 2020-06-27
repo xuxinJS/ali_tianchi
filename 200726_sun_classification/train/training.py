@@ -28,9 +28,12 @@ def build_argparser():
                         type=str)
     parser.add_argument('--validataion', '-v', help='Path to the folder of the validation data', required=True,
                         type=str)
+    parser.add_argument('--learning_rate', '-lr', help='Path to the folder of the validation data',
+                        type=float, default=1e-3)
     parser.add_argument('-gpu', default='0', type=str)
 
     return parser
+
 
 def steps_per_epoch_num(folder, batch_size):
     data_number = 0
@@ -38,6 +41,7 @@ def steps_per_epoch_num(folder, batch_size):
         data_number += len(os.listdir(os.path.join(folder, folder_name)))
     steps = data_number // batch_size
     return steps
+
 
 def main():
     args = build_argparser().parse_args()
@@ -50,7 +54,7 @@ def main():
     batch_size = args.b
     epochs = args.e
     gpu = args.gpu
-
+    lr = args.learning_rate
     # prepare data
     num_classes = len(os.listdir(train_path))
 
@@ -63,15 +67,15 @@ def main():
         if model_name == 'mobilenet':
             image_size = 224
             model = mobilenet(pretrained_weights=pre_weights, input_size=(image_size, image_size, 3),
-                              num_classes=num_classes)
+                              num_classes=num_classes, learning_rate=lr)
         elif model_name == 'resnet50':
             image_size = 224
             model = resnet50(pretrained_weights=pre_weights, input_size=(image_size, image_size, 3),
-                             num_classes=num_classes)
+                             num_classes=num_classes, learning_rate=lr)
         elif model_name == 'xception':
             image_size = 299
             model = xception(pretrained_weights=pre_weights, input_size=(image_size, image_size, 3),
-                             num_classes=num_classes)
+                             num_classes=num_classes, learning_rate=lr)
 
         # model.summary()
         train_steps = steps_per_epoch_num(train_path, batch_size)
@@ -91,7 +95,7 @@ def main():
         train_generator = train_datagen.flow_from_directory(train_path,
                                                             target_size=(image_size, image_size),
                                                             batch_size=batch_size)
-                                                            # save_to_dir='/home/xuxin/model/0627/gen')
+        # save_to_dir='/home/xuxin/model/0627/gen')
         validation_generator = test_datagen.flow_from_directory(validation_path,
                                                                 target_size=(image_size, image_size),
                                                                 batch_size=batch_size)
@@ -106,13 +110,13 @@ def main():
                                           save_best_only=True, save_weights_only=False)]
 
         cpu_workers = cpu_count() - 1 if (cpu_count() - 1) >= 1 else cpu_count()
-
+        print("multi processing workers:%d" % cpu_workers)
         model.fit_generator(train_generator,
                             steps_per_epoch=train_steps,
                             epochs=epochs,
                             validation_data=validation_generator,
                             validation_steps=validation_step,
-                            verbose=0,
+                            # verbose=0,
                             callbacks=callbacks_list,
                             max_queue_size=50,
                             workers=cpu_workers,
