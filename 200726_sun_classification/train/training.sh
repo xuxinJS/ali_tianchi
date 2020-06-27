@@ -1,35 +1,10 @@
 #!/bin/bash
-SRC="/T3/data_gen/fab68/demo_data_split/train"
-DST="/T3/data_gen/fab68/model"
-LOG="/T3/data_gen/fab68/log"
+TRAIN="/home/xuxin/data/sun/gen/continuum/train"
+VAL="/home/xuxin/data/sun/gen/continuum/val"
+DST="/home/xuxin/model/0627"
+LOG="/home/xuxin/model/0627/log"
+MODEL="xception"
 
-
-
-if [ ! -d "$SRC" ]
-then
-    echo "Your SRC argument is NOT a folder path."
-    exit
-fi
-
-if [ ! -e "$DST" ]
-then
-    rm -rf $DST
-    mkdir -p $DST
-else
-    mkdir -p $DST
-fi
-
-:<< BLOCK
-for i in `ls $SRC`
-do
-    python3 training.py -src $SRC"/"$i -dst $DST -m $MODEL -e 20 -b 32
-
-done
-BLOCK
-
-#MODEL="efficient_b1"
-#python3 training.py -src $SRC -dst $DST -m $MODEL -e 30 -b 10 -flip
-MODEL="efficient_b0"
-python3 training.py -src $SRC -dst $DST -m $MODEL -e 10 -b 10 -flip -log $LOG
+python3 training.py -t $TRAIN -v $VAL -m $MODEL -e 1 -b 8 -dst $DST -log $LOG
 
 

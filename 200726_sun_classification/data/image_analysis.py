@@ -1,5 +1,3 @@
-# 保存下感觉有疑问的图片
-
 import os
 import cv2
 import numpy as np

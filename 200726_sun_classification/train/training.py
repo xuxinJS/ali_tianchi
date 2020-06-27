@@ -24,16 +24,25 @@ def build_argparser():
     parser.add_argument('-e', help='epoch', type=int, default=30)
     parser.add_argument('-log', help='directory to save log', type=str, default='./log_dir')
     parser.add_argument('-dst', help='Path to the models to save.', required=True, type=str)
-    parser.add_argument('-src', help='Path to the folder of the training data', required=True,
+    parser.add_argument('--train', '-t', help='Path to the folder of the training data', required=True,
+                        type=str)
+    parser.add_argument('--validataion', '-v', help='Path to the folder of the validation data', required=True,
                         type=str)
     parser.add_argument('-gpu', default='0', type=str)
 
     return parser
 
+def steps_per_epoch_num(folder, batch_size):
+    data_number = 0
+    for folder_name in os.listdir(folder):
+        data_number += len(os.listdir(os.path.join(folder, folder_name)))
+    steps = data_number // batch_size
+    return steps
 
 def main():
     args = build_argparser().parse_args()
-    src_path = os.path.abspath(args.src)
+    train_path = os.path.abspath(args.train)
+    validation_path = os.path.abspath(args.validataion)
     dst_path = os.path.abspath(args.dst)
     log_dir = args.log
     model_name = args.m
@@ -43,7 +52,7 @@ def main():
     gpu = args.gpu
 
     # prepare data
-    num_classes = len(os.listdir(src_path))
+    num_classes = len(os.listdir(train_path))
 
     # keras config
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
@@ -65,37 +74,30 @@ def main():
                              num_classes=num_classes)
 
         # model.summary()
-
-        data_number = 0
-        validation_split = 0.2
-        for folder_name in os.listdir(src_path):
-            data_number += len(os.listdir(os.path.join(src_path, folder_name)))
-        print('all data number:', data_number)
-
-        train_steps = int(data_number * (1 - validation_split) // batch_size)
-        validation_step = int(data_number * validation_split // batch_size)
+        train_steps = steps_per_epoch_num(train_path, batch_size)
+        validation_step = steps_per_epoch_num(validation_path, batch_size)
 
         # generate training data
+        train_datagen = ImageDataGenerator(rescale=1. / 255,
+                                           brightness_range=(0, 1.0),
+                                           horizontal_flip=True,
+                                           vertical_flip=True,
+                                           width_shift_range=0.2,
+                                           height_shift_range=0.2,
+                                           zoom_range=0.2)
 
-        # datagen = ImageDataGenerator(rescale=1. / 255,
-        #                                  # brightness_range=(0, 1.0),
-        #                                  # shear_range=10,
-        #                                  # channel_shift_range=50,
-        #                                  validation_split=validation_split)
-        #
-        # train_generator = datagen.flow_from_directory(src_path,
-        #                                               subset='training',
-        #                                               target_size=(image_size, image_size),
-        #                                               batch_size=batch_size)
-        # # save_to_dir='/T3/data_gen/fab68/save')
-        # validation_generator = datagen.flow_from_directory(src_path,
-        #                                                    subset='validation',
-        #                                                    target_size=(image_size, image_size),
-        #                                                    batch_size=batch_size)
+        test_datagen = ImageDataGenerator(rescale=1. / 255)
 
-        model_path = os.path.join(dst_path, src_path.split(os.sep)[-1])
-        os.makedirs(model_path, exist_ok=True)
-        h5_path = os.path.join(model_path, model_name + '_weight.h5')
+        train_generator = train_datagen.flow_from_directory(train_path,
+                                                            target_size=(image_size, image_size),
+                                                            batch_size=batch_size)
+                                                            # save_to_dir='/home/xuxin/model/0627/gen')
+        validation_generator = test_datagen.flow_from_directory(validation_path,
+                                                                target_size=(image_size, image_size),
+                                                                batch_size=batch_size)
+
+        os.makedirs(dst_path, exist_ok=True)
+        h5_path = os.path.join(dst_path, model_name + '.h5')
 
         # training
         callbacks_list = [EarlyStopping(monitor='val_acc', patience=20, verbose=0),
@@ -110,7 +112,7 @@ def main():
                             epochs=epochs,
                             validation_data=validation_generator,
                             validation_steps=validation_step,
-                            verbose=2,
+                            verbose=0,
                             callbacks=callbacks_list,
                             max_queue_size=50,
                             workers=cpu_workers,

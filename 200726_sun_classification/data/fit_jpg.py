@@ -1,8 +1,5 @@
 # coding=utf-8
-# 归一化：将图片缩放到最大值和最小值之间，再缩放到-1～1
-# 是否要过滤在直方图上少的像素
-# 是否要裁剪图片
-# 将con和mag的数据用传统cv合并
+
 import os
 import cv2
 import warnings
