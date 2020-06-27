@@ -1,15 +1,22 @@
+# todo DataGenerator:sort labels
+
 import os
 import sys
+import cv2
+import math
 
-from keras.preprocessing.image import ImageDataGenerator
-from keras.callbacks import ModelCheckpoint, EarlyStopping
+from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard, CSVLogger, LearningRateScheduler
 from argparse import ArgumentParser
-from keras.callbacks import TensorBoard
+from keras.utils import to_categorical, Sequence
+from multiprocessing import cpu_count
+from albumentations import *
+from model_lib import *
+from keras.optimizers import Adam
+
 from keras import backend as K
 import tensorflow as tf
-from multiprocessing import cpu_count
-
-from model_lib import *
+import numpy as np
+import datetime as dt
 
 # control CUDA/tensorflow log level
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -22,41 +29,145 @@ def build_argparser():
     parser.add_argument('-pw', help='pretrained_weights path', type=str, default=None)
     parser.add_argument('-b', help='batch size', type=int, default=16)
     parser.add_argument('-e', help='epoch', type=int, default=30)
-    parser.add_argument('-log', help='directory to save log', type=str, default='./log_dir')
     parser.add_argument('-dst', help='Path to the models to save.', required=True, type=str)
-    parser.add_argument('--train', '-t', help='Path to the folder of the training data', required=True,
-                        type=str)
-    parser.add_argument('--validataion', '-v', help='Path to the folder of the validation data', required=True,
-                        type=str)
-    parser.add_argument('--learning_rate', '-lr', help='Path to the folder of the validation data',
-                        type=float, default=1e-3)
+    parser.add_argument('--train', '-t', help='folder of the training data', required=True, type=str)
+    parser.add_argument('--validataion', '-v', help='folder of the validation data', required=True, type=str)
+    parser.add_argument('--learning_rate', '-lr', help='init learning rate', type=float, default=1e-3)
+    parser.add_argument('--epoch_drop', '-ed', help='epochs learning rate drop', type=int, default=10)
     parser.add_argument('-gpu', default='0', type=str)
-
     return parser
 
 
-def steps_per_epoch_num(folder, batch_size):
-    data_number = 0
-    for folder_name in os.listdir(folder):
-        data_number += len(os.listdir(os.path.join(folder, folder_name)))
-    steps = data_number // batch_size
-    return steps
+def strong_aug(p=.5):
+    return Compose([
+        Flip(),
+        OneOf([
+            CLAHE(clip_limit=4, tile_grid_size=(8, 8), p=1),
+            RandomBrightnessContrast(brightness_limit=0.15, contrast_limit=0.15, p=1),
+            HueSaturationValue(hue_shift_limit=15, sat_shift_limit=15, val_shift_limit=15, p=1),
+        ], p=1),
+    ], p=p)
+
+
+def lr_decay(epoch):
+    """ Learning rate decay function
+
+        Drop learning rate by [cfg.lr_sched_drop] every
+        [cfg.epochs_drop] number of epochs
+
+        Input
+                epoch : Current epoch count
+        Output
+                lrate : New learning rate
+    """
+    initial_lrate = lr
+    drop_rate = 0.6
+    epochs_until_drop = lr_epochs_drop
+    lrate = initial_lrate * math.pow(drop_rate, math.floor((1 + epoch) / epochs_until_drop))
+    return lrate
+
+
+class DataGenerator(Sequence):
+    """ Generates data for training and validation
+    """
+
+    def __init__(self, img_names, labels, batch_size, n_classes, dim, preprocess_input,
+                 shuffle=True, aug=True, save_folder=None):
+        """ Initialization
+        img_names:full path of image
+        labels:0 ~ n_classes-1
+        dim:(width, heigth)
+        """
+        self.img_names = img_names
+        self.labels = labels
+        self.batch_size = batch_size
+        self.n_classes = n_classes
+        self.dim = dim
+        self.preprocess_input = preprocess_input
+        self.shuffle = shuffle
+        self.aug = aug
+        self.save_folder = save_folder
+        self.image_nums = len(self.img_names)
+        self.all_index = np.arange(self.image_nums)
+
+        self.on_epoch_end()
+
+    def __len__(self):
+        """ Returns number of batches in dataset
+        """
+        return int(np.floor(self.image_nums / self.batch_size))
+
+    def __getitem__(self, index):
+        """ Returns one batch of data
+        """
+        # Generate start and end indices of the batch
+        idxmin = index * self.batch_size
+        idxmax = min((index + 1) * self.batch_size, self.image_nums)
+        temp_index = self.all_index[idxmin:idxmax]
+        # Find IDs and labels for the selected indices
+        img_names = [self.img_names[i] for i in temp_index]
+        list_labels = [self.labels[i] for i in temp_index]
+        # Generate data for selected IDs and labels
+        x, y = self.__data_generation(img_names, list_labels)
+        return x, y
+
+    def on_epoch_end(self):
+        """ Updates all_index after each epoch
+        """
+        # Shuffle array of indices after each epoch end
+        if self.shuffle:
+            np.random.seed(42)
+            np.random.shuffle(self.all_index)
+
+    def __data_generation(self, img_names, list_labels):
+        """ Generates data containing batch_size samples
+        """
+        y_batch = []
+        x_batch = []
+        for image_name in img_names:
+            image = cv2.imread(image_name)
+            image = cv2.resize(image, self.dim)
+            # todo label_process
+            if self.aug == True:
+                data = {"image": image}
+                augmented = self.aug(**data)
+                image = augmented["image"]
+            if self.save_folder:
+                cv2.imwrite(os.path.join(self.save_folder, os.path.basename(image_name)), image)
+            x_batch.append(image)
+        x_array = self.preprocess_input(np.array(x_batch))
+        y_array = to_categorical(np.array(list_labels), num_classes=self.n_classes)
+        return x_array, y_array
 
 
 def main():
+    global lr
+    global lr_epochs_drop
+
     args = build_argparser().parse_args()
     train_path = os.path.abspath(args.train)
     validation_path = os.path.abspath(args.validataion)
     dst_path = os.path.abspath(args.dst)
-    log_dir = args.log
     model_name = args.m
     pre_weights = args.pw
     batch_size = args.b
     epochs = args.e
     gpu = args.gpu
     lr = args.learning_rate
+    lr_epochs_drop = args.epoch_drop
+
     # prepare data
-    num_classes = len(os.listdir(train_path))
+    classes = sorted(os.listdir(train_path))
+    num_classes = len(classes)
+    with open(os.path.join(dst_path, 'class.txt'), 'w') as f:
+        for i in classes:
+            f.write("%s\n" % i)
+
+    log_dir = os.path.join(dst_path, 'log')
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    start_time = dt.datetime.now().strftime('%Y%m%d_%H%M')
+    h5_path = os.path.join(dst_path, "%s_%s.h5" % (model_name, start_time))
 
     # keras config
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
@@ -65,62 +176,65 @@ def main():
     with tf.Session(config=keras_config) as sess:
         K.set_session(sess)
         if model_name == 'mobilenet':
-            image_size = 224
-            model = mobilenet(pretrained_weights=pre_weights, input_size=(image_size, image_size, 3),
-                              num_classes=num_classes, learning_rate=lr)
+            image_height = 224
+            image_width = 224
+            model, process_input = mobilenet(pretrained_weights=pre_weights, input_size=(image_height, image_width, 3),
+                                             num_classes=num_classes, learning_rate=lr)
         elif model_name == 'resnet50':
-            image_size = 224
-            model = resnet50(pretrained_weights=pre_weights, input_size=(image_size, image_size, 3),
-                             num_classes=num_classes, learning_rate=lr)
+            image_height = 224
+            image_width = 224
+            model, process_input = resnet50(pretrained_weights=pre_weights, input_size=(image_height, image_width, 3),
+                                            num_classes=num_classes, learning_rate=lr)
         elif model_name == 'xception':
-            image_size = 299
-            model = xception(pretrained_weights=pre_weights, input_size=(image_size, image_size, 3),
-                             num_classes=num_classes, learning_rate=lr)
+            image_height = 299
+            image_width = 299
+            model, process_input = xception(pretrained_weights=pre_weights, input_size=(image_height, image_width, 3),
+                                            num_classes=num_classes, learning_rate=lr)
 
-        # model.summary()
-        train_steps = steps_per_epoch_num(train_path, batch_size)
-        validation_step = steps_per_epoch_num(validation_path, batch_size)
-
-        # generate training data
-        train_datagen = ImageDataGenerator(rescale=1. / 255,
-                                           brightness_range=(0, 1.0),
-                                           horizontal_flip=True,
-                                           vertical_flip=True,
-                                           width_shift_range=0.2,
-                                           height_shift_range=0.2,
-                                           zoom_range=0.2)
-
-        test_datagen = ImageDataGenerator(rescale=1. / 255)
-
-        train_generator = train_datagen.flow_from_directory(train_path,
-                                                            target_size=(image_size, image_size),
-                                                            batch_size=batch_size)
-        # save_to_dir='/home/xuxin/model/0627/gen')
-        validation_generator = test_datagen.flow_from_directory(validation_path,
-                                                                target_size=(image_size, image_size),
-                                                                batch_size=batch_size)
-
-        os.makedirs(dst_path, exist_ok=True)
-        h5_path = os.path.join(dst_path, model_name + '.h5')
+        model.compile(optimizer=Adam(lr=lr), loss='categorical_crossentropy', metrics=['accuracy'])
 
         # training
-        callbacks_list = [EarlyStopping(monitor='val_acc', patience=20, verbose=0),
-                          TensorBoard(log_dir=log_dir),
-                          ModelCheckpoint(h5_path, monitor='val_acc', verbose=0,
-                                          save_best_only=True, save_weights_only=False)]
+        callbacks_list = [
+            LearningRateScheduler(lr_decay),
+            EarlyStopping(monitor='val_loss', patience=20, verbose=0),
+            TensorBoard(log_dir=log_dir),
+            ModelCheckpoint(h5_path, monitor='val_loss', verbose=0,
+                            save_best_only=True, save_weights_only=False),
+            CSVLogger(os.path.join(dst_path, "%s_%s.csv" % (model_name, start_time)))
+        ]
 
         cpu_workers = cpu_count() - 1 if (cpu_count() - 1) >= 1 else cpu_count()
         print("multi processing workers:%d" % cpu_workers)
-        model.fit_generator(train_generator,
-                            steps_per_epoch=train_steps,
+
+        # Initialize train data generator
+        training_generator = DataGenerator(train_imgs,
+                                           labels=train_labels,
+                                           batch_size=batch_size,
+                                           n_classes=num_classes,
+                                           dim=(image_width, image_height),
+                                           preprocess_input=process_input,
+                                           shuffle=True,
+                                           aug=True,
+                                           save_folder=None)
+
+        # Initialize validation generator
+        validation_generator = DataGenerator(val_imgs,
+                                             labels=val_labels,
+                                             batch_size=batch_size,
+                                             n_classes=num_classes,
+                                             dim=(image_width, image_height),
+                                             preprocess_input=process_input,
+                                             shuffle=False,
+                                             aug=False)
+
+        model.fit_generator(generator=training_generator,
                             epochs=epochs,
-                            validation_data=validation_generator,
-                            validation_steps=validation_step,
-                            # verbose=0,
                             callbacks=callbacks_list,
-                            max_queue_size=50,
+                            validation_data=validation_generator,
+                            max_queue_size=20,
                             workers=cpu_workers,
-                            use_multiprocessing=True)  # may cause exception
+                            use_multiprocessing=True)
+        # class_weight)
 
     K.clear_session()
 
