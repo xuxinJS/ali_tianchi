@@ -8,7 +8,6 @@ import math
 from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard, CSVLogger, LearningRateScheduler
 from argparse import ArgumentParser
 from keras.utils import to_categorical, Sequence
-from multiprocessing import cpu_count
 from albumentations import *
 from model_lib import *
 from keras.optimizers import Adam
@@ -36,6 +35,7 @@ def build_argparser():
     parser.add_argument('--learning_rate', '-lr', help='init learning rate', type=float, default=1e-3)
     parser.add_argument('--epoch_drop', '-ed', help='epochs learning rate drop', type=int, default=10)
     parser.add_argument('--aug_prob', '-aug', type=float, default=0.5)
+    parser.add_argument('--process_num', '-pn', type=int, default=1)
     parser.add_argument('-gpu', default='0', type=str)
     return parser
 
@@ -149,7 +149,8 @@ def main():
     args = build_argparser().parse_args()
     train_path = os.path.abspath(args.train)
     validation_path = os.path.abspath(args.validataion)
-    dst_path = os.path.abspath(args.dst)
+    start_time = dt.datetime.now().strftime('%Y%m%d_%H%M')
+    dst_path = os.path.join(os.path.abspath(args.dst), start_time)
     model_name = args.m
     pre_weights = args.pw
     batch_size = args.b
@@ -158,7 +159,7 @@ def main():
     lr = args.learning_rate
     lr_epochs_drop = args.epoch_drop
     global_aug = strong_aug(p=args.aug_prob)
-
+    process_num = args.process_num
 
     log_dir = os.path.join(dst_path, 'log')
     if not os.path.exists(log_dir):
@@ -193,8 +194,8 @@ def main():
             val_image_names.extend(tmp_names)
             val_image_indexs.extend(tmp_indexs)
 
-    start_time = dt.datetime.now().strftime('%Y%m%d_%H%M')
-    h5_path = os.path.join(dst_path, "%s_%s.h5" % (model_name, start_time))
+    save_name = model_name + '_ep{epoch:02d}_' + 'vloss{val_loss:.4f}.h5' if valid_flag else 'loss{loss:.4f}.h5'
+    full_save_name = os.path.join(dst_path, save_name)
 
     # keras config
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
@@ -225,13 +226,10 @@ def main():
             LearningRateScheduler(lr_decay),
             EarlyStopping(monitor='val_loss', patience=20, verbose=0),
             TensorBoard(log_dir=log_dir),
-            ModelCheckpoint(h5_path, monitor= 'val_loss' if valid_flag else 'loss',
-                            verbose=0, save_best_only=True, save_weights_only=False),
+            ModelCheckpoint(full_save_name, monitor='val_loss' if valid_flag else 'loss',
+                            verbose=0, save_best_only=True, save_weights_only=True),
             CSVLogger(os.path.join(dst_path, "%s_%s.csv" % (model_name, start_time)))
         ]
-
-        cpu_workers = 1 #cpu_count() - 1 if (cpu_count() - 1) >= 1 else cpu_count()
-        print("multi processing workers:%d" % cpu_workers)
 
         # Initialize train data generator
         training_generator = DataGenerator(img_names=train_image_names,
@@ -260,12 +258,11 @@ def main():
                             callbacks=callbacks_list,
                             validation_data=validation_generator if valid_flag else None,
                             max_queue_size=20,
-                            workers=cpu_workers,
+                            workers=process_num,
                             use_multiprocessing=True)
         # class_weight)
 
     K.clear_session()
-
 
 if __name__ == '__main__':
     sys.exit(main() or 0)
