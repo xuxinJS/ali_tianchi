@@ -12,6 +12,7 @@ from multiprocessing import cpu_count
 from albumentations import *
 from model_lib import *
 from keras.optimizers import Adam
+from glob import glob
 
 from keras import backend as K
 import tensorflow as tf
@@ -19,7 +20,7 @@ import numpy as np
 import datetime as dt
 
 # control CUDA/tensorflow log level
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 
 
@@ -29,11 +30,12 @@ def build_argparser():
     parser.add_argument('-pw', help='pretrained_weights path', type=str, default=None)
     parser.add_argument('-b', help='batch size', type=int, default=16)
     parser.add_argument('-e', help='epoch', type=int, default=30)
-    parser.add_argument('-dst', help='Path to the models to save.', required=True, type=str)
+    parser.add_argument('-dst', help='Path to the models to save.', type=str, default='.')
     parser.add_argument('--train', '-t', help='folder of the training data', required=True, type=str)
-    parser.add_argument('--validataion', '-v', help='folder of the validation data', required=True, type=str)
+    parser.add_argument('--validataion', '-v', help='folder of the validation data', type=str, default=None)
     parser.add_argument('--learning_rate', '-lr', help='init learning rate', type=float, default=1e-3)
     parser.add_argument('--epoch_drop', '-ed', help='epochs learning rate drop', type=int, default=10)
+    parser.add_argument('--aug_prob', '-aug', type=float, default=0.5)
     parser.add_argument('-gpu', default='0', type=str)
     return parser
 
@@ -122,7 +124,6 @@ class DataGenerator(Sequence):
     def __data_generation(self, img_names, list_labels):
         """ Generates data containing batch_size samples
         """
-        y_batch = []
         x_batch = []
         for image_name in img_names:
             image = cv2.imread(image_name)
@@ -130,7 +131,7 @@ class DataGenerator(Sequence):
             # todo label_process
             if self.aug == True:
                 data = {"image": image}
-                augmented = self.aug(**data)
+                augmented = global_aug(**data)
                 image = augmented["image"]
             if self.save_folder:
                 cv2.imwrite(os.path.join(self.save_folder, os.path.basename(image_name)), image)
@@ -143,6 +144,7 @@ class DataGenerator(Sequence):
 def main():
     global lr
     global lr_epochs_drop
+    global global_aug
 
     args = build_argparser().parse_args()
     train_path = os.path.abspath(args.train)
@@ -155,17 +157,42 @@ def main():
     gpu = args.gpu
     lr = args.learning_rate
     lr_epochs_drop = args.epoch_drop
+    global_aug = strong_aug(p=args.aug_prob)
 
-    # prepare data
-    classes = sorted(os.listdir(train_path))
-    num_classes = len(classes)
-    with open(os.path.join(dst_path, 'class.txt'), 'w') as f:
-        for i in classes:
-            f.write("%s\n" % i)
 
     log_dir = os.path.join(dst_path, 'log')
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
+
+    # prepare data
+    classes = sorted(os.listdir(train_path))
+    num_classes = len(classes)
+    class_ids = dict()  # {'label1':0, ...}
+    train_image_names = []
+    train_image_indexs = []
+    val_image_names = []
+    val_image_indexs = []
+
+    with open(os.path.join(dst_path, 'class.txt'), 'w') as f:
+        for index, label in enumerate(classes):
+            f.write("%s\n" % label)
+            class_ids[label] = index
+
+    for label in classes:
+        tmp_names = glob(os.path.join(train_path, label, '*'))
+        tmp_indexs = [class_ids[label]] * len(tmp_names)
+        train_image_names.extend(tmp_names)
+        train_image_indexs.extend(tmp_indexs)
+
+    valid_flag = False
+    if validation_path is not None:
+        valid_flag = True
+        for label in classes:
+            tmp_names = glob(os.path.join(validation_path, label, '*'))
+            tmp_indexs = [class_ids[label]] * len(tmp_names)
+            val_image_names.extend(tmp_names)
+            val_image_indexs.extend(tmp_indexs)
+
     start_time = dt.datetime.now().strftime('%Y%m%d_%H%M')
     h5_path = os.path.join(dst_path, "%s_%s.h5" % (model_name, start_time))
 
@@ -179,17 +206,17 @@ def main():
             image_height = 224
             image_width = 224
             model, process_input = mobilenet(pretrained_weights=pre_weights, input_size=(image_height, image_width, 3),
-                                             num_classes=num_classes, learning_rate=lr)
+                                             num_classes=num_classes)
         elif model_name == 'resnet50':
             image_height = 224
             image_width = 224
             model, process_input = resnet50(pretrained_weights=pre_weights, input_size=(image_height, image_width, 3),
-                                            num_classes=num_classes, learning_rate=lr)
+                                            num_classes=num_classes)
         elif model_name == 'xception':
             image_height = 299
             image_width = 299
             model, process_input = xception(pretrained_weights=pre_weights, input_size=(image_height, image_width, 3),
-                                            num_classes=num_classes, learning_rate=lr)
+                                            num_classes=num_classes)
 
         model.compile(optimizer=Adam(lr=lr), loss='categorical_crossentropy', metrics=['accuracy'])
 
@@ -198,17 +225,17 @@ def main():
             LearningRateScheduler(lr_decay),
             EarlyStopping(monitor='val_loss', patience=20, verbose=0),
             TensorBoard(log_dir=log_dir),
-            ModelCheckpoint(h5_path, monitor='val_loss', verbose=0,
-                            save_best_only=True, save_weights_only=False),
+            ModelCheckpoint(h5_path, monitor= 'val_loss' if valid_flag else 'loss',
+                            verbose=0, save_best_only=True, save_weights_only=False),
             CSVLogger(os.path.join(dst_path, "%s_%s.csv" % (model_name, start_time)))
         ]
 
-        cpu_workers = cpu_count() - 1 if (cpu_count() - 1) >= 1 else cpu_count()
+        cpu_workers = 1 #cpu_count() - 1 if (cpu_count() - 1) >= 1 else cpu_count()
         print("multi processing workers:%d" % cpu_workers)
 
         # Initialize train data generator
-        training_generator = DataGenerator(train_imgs,
-                                           labels=train_labels,
+        training_generator = DataGenerator(img_names=train_image_names,
+                                           labels=train_image_indexs,
                                            batch_size=batch_size,
                                            n_classes=num_classes,
                                            dim=(image_width, image_height),
@@ -218,19 +245,20 @@ def main():
                                            save_folder=None)
 
         # Initialize validation generator
-        validation_generator = DataGenerator(val_imgs,
-                                             labels=val_labels,
-                                             batch_size=batch_size,
-                                             n_classes=num_classes,
-                                             dim=(image_width, image_height),
-                                             preprocess_input=process_input,
-                                             shuffle=False,
-                                             aug=False)
+        if valid_flag:
+            validation_generator = DataGenerator(img_names=val_image_names,
+                                                 labels=val_image_indexs,
+                                                 batch_size=batch_size,
+                                                 n_classes=num_classes,
+                                                 dim=(image_width, image_height),
+                                                 preprocess_input=process_input,
+                                                 shuffle=False,
+                                                 aug=False)
 
         model.fit_generator(generator=training_generator,
                             epochs=epochs,
                             callbacks=callbacks_list,
-                            validation_data=validation_generator,
+                            validation_data=validation_generator if valid_flag else None,
                             max_queue_size=20,
                             workers=cpu_workers,
                             use_multiprocessing=True)
