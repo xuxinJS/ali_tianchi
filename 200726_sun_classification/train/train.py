@@ -1,5 +1,3 @@
-# todo DataGenerator:sort labels
-
 import os
 import sys
 import cv2
@@ -19,7 +17,6 @@ import numpy as np
 import datetime as dt
 
 # control CUDA/tensorflow log level
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 
 
@@ -206,19 +203,21 @@ def main():
         if model_name == 'mobilenet':
             image_height = 224
             image_width = 224
-            model, process_input = mobilenet(pretrained_weights=pre_weights, input_size=(image_height, image_width, 3),
+            model, process_input = mobilenet(input_size=(image_height, image_width, 3),
                                              num_classes=num_classes)
         elif model_name == 'resnet50':
             image_height = 224
             image_width = 224
-            model, process_input = resnet50(pretrained_weights=pre_weights, input_size=(image_height, image_width, 3),
+            model, process_input = resnet50(input_size=(image_height, image_width, 3),
                                             num_classes=num_classes)
         elif model_name == 'xception':
             image_height = 299
             image_width = 299
-            model, process_input = xception(pretrained_weights=pre_weights, input_size=(image_height, image_width, 3),
+            model, process_input = xception(input_size=(image_height, image_width, 3),
                                             num_classes=num_classes)
 
+        if pre_weights:
+            model.load_weights(pre_weights)
         model.compile(optimizer=Adam(lr=lr), loss='categorical_crossentropy', metrics=['accuracy'])
 
         # training

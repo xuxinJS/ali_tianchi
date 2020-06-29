@@ -42,24 +42,39 @@ def convert_data(input_name, output_name):
     cv2.imwrite(output_name, cv_im)
 
 
-input_folder = '/T3/data/train_data/public/tianchi/20200726_sun_classification/trainset'
-output_folder = '/home/dls1/simple_data/sun_classification'
-cores = 11
+input_folder = '/T3/data/train_data/public/tianchi/20200726_sun_classification/test_input'
+output_folder = '/home/dls1/simple_data/classification/test'
+flag = 'test'  # train test
+cores = 12
 pool = multiprocessing.Pool(processes=cores)
-for folder in os.listdir(input_folder):
-    folder_name = os.path.join(input_folder, folder)
-    for cls in os.listdir(folder_name):
-        class_folder = os.path.join(folder_name, cls)
-        for file in os.listdir(class_folder):
+if flag == 'train':
+    for folder in os.listdir(input_folder):
+        folder_name = os.path.join(input_folder, folder)
+        for cls in os.listdir(folder_name):
+            class_folder = os.path.join(folder_name, cls)
+            for file in os.listdir(class_folder):
+                print(file)
+                input_file_name = os.path.join(class_folder, file)
+                file_split = file.split('.')
+                target = file_split[2]
+                target_time = file_split[3].split('_')[:2]
+                target_time.insert(0, target)
+                save_name = '_'.join(target_time) + '.jpg'
+                save_folder = os.path.join(output_folder, folder, cls)
+                if not os.path.exists(save_folder):
+                    os.makedirs(save_folder)
+                full_save_name = os.path.join(save_folder, save_name)
+                pool.apply_async(convert_data, args=(input_file_name, full_save_name))
+elif flag == 'test':
+    for folder in os.listdir(input_folder):
+        folder_name = os.path.join(input_folder, folder)
+        for file in os.listdir(folder_name):
             print(file)
-            input_file_name = os.path.join(class_folder, file)
+            input_file_name = os.path.join(folder_name, file)
             file_split = file.split('.')
-            # save_split = file_split[2:4]
-            target = file_split[2]
-            target_time = file_split[3].split('_')[:2]
-            target_time.insert(0, target)
-            save_name = ('_').join(target_time) + '.jpg'
-            save_folder = os.path.join(output_folder, folder, cls)
+            target_time = file_split[3]
+            save_name = target_time.split('_')[1] + '.jpg'
+            save_folder = os.path.join(output_folder, folder)
             if not os.path.exists(save_folder):
                 os.makedirs(save_folder)
             full_save_name = os.path.join(save_folder, save_name)
