@@ -169,12 +169,18 @@ if __name__ == '__main__':
         error_folder = op.join(output_dir, 'error')
         if not os.path.exists(error_folder):
             os.makedirs(error_folder)
+        error_folder_resize = op.join(output_dir, 'error_resize')
+        if not os.path.exists(error_folder_resize):
+            os.makedirs(error_folder_resize)
         for index in index_err:
             err_image_name = test_names[index]
             err_img = cv2.imread(err_image_name)
             cv2.putText(err_img, "GT:%d Pred:%d" % (test_labels_arr[index], pred_labels_arr[index]), (0, 30),
                         cv2.FONT_HERSHEY_COMPLEX, 1, (255, 0, 0), thickness=1)
             save_image_name = op.join(error_folder, op.basename(err_image_name))
+            cv2.imwrite(save_image_name, err_img)
+            err_img = cv2.resize(err_img, (image_width, image_height))
+            save_image_name = op.join(error_folder_resize, op.basename(err_image_name))
             cv2.imwrite(save_image_name, err_img)
 
         # plot show confusion metrics heamap
