@@ -190,7 +190,8 @@ def main():
             val_image_names.extend(tmp_names)
             val_image_indexs.extend(tmp_indexs)
 
-    save_name = model_name + '_ep{epoch:02d}_' + 'vloss{val_loss:.4f}.h5' if valid_flag else 'loss{loss:.4f}.h5'
+    save_name_loss = 'vloss{val_loss:.4f}.h5' if valid_flag else 'loss{loss:.4f}.h5'
+    save_name = model_name + '_ep{epoch:02d}_' + save_name_loss
     full_save_name = os.path.join(dst_path, save_name)
 
     # keras config
@@ -222,7 +223,7 @@ def main():
         # training
         callbacks_list = [
             LearningRateScheduler(lr_decay),
-            EarlyStopping(monitor='val_loss', patience=20, verbose=0),
+            EarlyStopping(monitor='val_loss' if valid_flag else 'loss', patience=20, verbose=0),
             TensorBoard(log_dir=log_dir),
             ModelCheckpoint(full_save_name, monitor='val_loss' if valid_flag else 'loss',
                             verbose=0, save_best_only=True, save_weights_only=True),
