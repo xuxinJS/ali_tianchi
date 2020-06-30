@@ -144,7 +144,6 @@ def main():
 
     args = build_argparser().parse_args()
     train_path = os.path.abspath(args.train)
-    validation_path = os.path.abspath(args.validataion)
     start_time = dt.datetime.now().strftime('%Y%m%d_%H%M')
     dst_path = os.path.join(os.path.abspath(args.dst), start_time)
     model_name = args.m
@@ -183,6 +182,7 @@ def main():
 
     valid_flag = False
     if validation_path is not None:
+        validation_path = os.path.abspath(args.validataion)
         valid_flag = True
         for label in classes:
             tmp_names = glob(os.path.join(validation_path, label, '*'))
