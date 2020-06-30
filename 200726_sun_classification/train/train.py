@@ -125,7 +125,6 @@ class DataGenerator(Sequence):
         for image_name in img_names:
             image = cv2.imread(image_name)
             image = cv2.resize(image, self.dim)
-            # todo label_process
             if self.aug == True:
                 data = {"image": image}
                 augmented = global_aug(**data)

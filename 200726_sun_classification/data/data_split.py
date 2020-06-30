@@ -76,6 +76,22 @@ def ratio(input, output="output", seed=1337, ratio=(0.8, 0.1, 0.1)):
     if tqdm_is_installed:
         prog_bar.close()
 
+def ratio_first_name(input, output="output", seed=1337, ratio=(0.8, 0.1, 0.1)):
+    # make up for some impression
+    assert round(sum(ratio), 5) == 1
+    assert len(ratio) in (2, 3)
+
+    if tqdm_is_installed:
+        prog_bar = tqdm(desc=f"Copying files", unit=" files")
+
+    for class_dir in list_dirs(input):
+        split_class_dir_ratio_first_name(
+            class_dir, output, ratio, seed, prog_bar if tqdm_is_installed else None
+        )
+
+    if tqdm_is_installed:
+        prog_bar.close()
+
 
 def setup_files(class_dir, seed):
     """Returns shuffled files
@@ -148,7 +164,6 @@ def split_class_dir_ratio_first_name(class_dir, output, ratio, seed, prog_bar):
 def split_files_first_name(first_names, file_names, split_train, split_val, use_test):
     """Splits the files along the provided indices  via  26_20100527_062400.jpg  26
     """
-    # todo
     first_names_train = first_names[:split_train]
     first_names_val = first_names[split_train:split_val] if use_test else first_names[split_train:]
 
@@ -192,6 +207,6 @@ def copy_files(files_type, class_dir, output, prog_bar):
 
 
 if __name__ == '__main__':
-    input_folder = '/home/xuxin/data/sun/classification/continuum'
-    output_folder = '/home/xuxin/data/sun/gen/continuum'
-    ratio(input=input_folder, output=output_folder, seed=11, ratio=(0.6, 0.2, 0.2))
+    input_folder = '/home/dls1/simple_data/classification/train/continuum'
+    output_folder = '/home/dls1/simple_data/data_gen/0630_con'
+    ratio_first_name(input=input_folder, output=output_folder, seed=11, ratio=(0.6, 0.2, 0.2))
