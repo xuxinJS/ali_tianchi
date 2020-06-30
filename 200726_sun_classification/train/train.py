@@ -181,7 +181,7 @@ def main():
         train_image_indexs.extend(tmp_indexs)
 
     valid_flag = False
-    if validation_path is not None:
+    if args.validataion is not None:
         validation_path = os.path.abspath(args.validataion)
         valid_flag = True
         for label in classes:
