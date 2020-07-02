@@ -1,9 +1,9 @@
 #!/bin/bash
-TRAIN="/home/xuxin/Desktop/t_s/c"
-VAL="/home/xuxin/Desktop/t_s/m"
-DST="/home/xuxin/data/sun_classification/log"
+TRAIN="/home/dls1/simple_data/data_gen/0702_con/train"
+VAL="/home/dls1/simple_data/data_gen/0702_con/val"
+DST="/home/dls1/simple_data/data_gen/0702_con/val"
 MODEL="xception"
-EPOCH=40
+EPOCH=30
 BATCH=10
 LR=1e-3
 EPOCH_DROP=10
