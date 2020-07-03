@@ -261,6 +261,11 @@ def main():
                             use_multiprocessing=True)
         # class_weight)
 
+        # save last epoch weight
+        save_name = model_name + '_ep_last.h5'
+        full_save_name = os.path.join(dst_path, save_name)
+        model.save_weights(full_save_name)
+
     K.clear_session()
 
 if __name__ == '__main__':
