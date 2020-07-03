@@ -133,7 +133,7 @@ if __name__ == '__main__':
             # print(name, init_result)
 
     # write tianchi update result
-    txt_name = "C_whisper.txt"
+    txt_name = "C_aurora_xin.txt"
     full_txt_name = op.join(output_dir, txt_name)
     with open(full_txt_name, 'w') as f:
         for index, image_name in enumerate(test_names):

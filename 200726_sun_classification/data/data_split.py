@@ -116,10 +116,11 @@ def setup_files_first_name(class_dir, seed):
         first_name = i.name.split('_')[0]
         first_name_set.add(first_name)
 
-    random.seed(seed)
     first_name_list = list(first_name_set)
-    random.shuffle(first_name_list)
-    return first_name_list, files_names_list
+    first_name_list_sort = sorted(first_name_list)
+    random.seed(seed)
+    random.shuffle(first_name_list_sort)
+    return first_name_list_sort, files_names_list
 
 
 def split_class_dir_ratio(class_dir, output, ratio, seed, prog_bar):
@@ -207,6 +208,6 @@ def copy_files(files_type, class_dir, output, prog_bar):
 
 
 if __name__ == '__main__':
-    input_folder = '/home/dls1/simple_data/classification/train/continuum'
-    output_folder = '/home/dls1/simple_data/data_gen/0630_con'
+    input_folder = '/home/dls1/simple_data/classification/train/magnetogram'
+    output_folder = '/home/dls1/simple_data/data_gen/0703_mag'
     ratio_first_name(input=input_folder, output=output_folder, seed=11, ratio=(0.6, 0.2, 0.2))

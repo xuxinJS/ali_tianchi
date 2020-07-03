@@ -41,18 +41,28 @@ def find_roi(gray):
     return final_mask
 
 
-def convert_data(input_file_name, full_save_name):
-    print(input_file_name)
-    gray = cv2.imread(input_file_name, 0)
-    mask = find_roi(gray.copy())
-    bgr = cv2.merge([gray, gray, mask])
+# 通道拼接
+def convert_data(input_file_name, full_save_name, G_channel_name=None):
+    # print(input_file_name)
+    gray = cv2.imread(input_file_name, 0)  # B/G or B channel
+    mask = find_roi(gray.copy())  # R channel
+    if G_channel_name is None:
+        bgr = cv2.merge([gray, gray, mask])
+    else:
+        g_channel = cv2.imread(G_channel_name, 0)
+        bgr = cv2.merge([gray, g_channel, mask])
+    # cv2.imshow('bgr', bgr)
+    # cv2.imshow('gray', gray)
+    # cv2.imshow('mask', mask)
+    # cv2.waitKey(0)
+    # print(full_save_name)
     cv2.imwrite(full_save_name, bgr)
-    print(full_save_name)
 
 
 if __name__ == '__main__':
-    input_folder = '/home/dls1/simple_data/data_gen/0630_con'
-    output_folder = '/home/dls1/simple_data/data_gen/0702_con'
+    input_folder = '/home/dls1/simple_data/data_gen/0703_con'
+    g_channel_folder = '/home/dls1/simple_data/data_gen/0703_mag'
+    output_folder = '/home/dls1/simple_data/data_gen/0703_con_mag_cv'
     cores = 12
     pool = multiprocessing.Pool(processes=cores)
 
@@ -64,10 +74,14 @@ if __name__ == '__main__':
             if not os.path.exists(save_folder):
                 os.makedirs(save_folder)
             for file in os.listdir(class_folder):
-                # print(file)
+                print(file)
+                if g_channel_folder is not None:
+                    g_channel_name = os.path.join(g_channel_folder, split, cls, file)
+                else:
+                    g_channel_name = None
                 input_file_name = os.path.join(class_folder, file)
                 full_save_name = os.path.join(save_folder, file)
-                pool.apply_async(convert_data, args=(input_file_name, full_save_name))
+                pool.apply_async(convert_data, args=(input_file_name, full_save_name, g_channel_name))
 
     pool.close()
     pool.join()

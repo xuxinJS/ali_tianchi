@@ -1,7 +1,7 @@
 #!/bin/bash
 TRAIN="/home/dls1/simple_data/data_gen/0702_con/train"
 VAL="/home/dls1/simple_data/data_gen/0702_con/val"
-DST="/home/dls1/simple_data/data_gen/0702_con/val"
+DST="/home/dls1/simple_data/train_log"
 MODEL="xception"
 EPOCH=30
 BATCH=10
