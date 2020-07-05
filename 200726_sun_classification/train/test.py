@@ -58,7 +58,7 @@ if __name__ == '__main__':
     backbone_name = args.m
     weight = args.pw
     test_dir = args.test_dir
-    start_time = dt.datetime.now().strftime('%Y%m%d_%H%M')
+    start_time = dt.datetime.now().strftime('%Y%m%d_%H%M%S')
     output_dir = op.join(op.abspath(args.o), start_time)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -146,6 +146,7 @@ if __name__ == '__main__':
         acc_name = "acc.txt"
         full_acc_name = op.join(output_dir, acc_name)
         with open(full_acc_name, 'w') as f:
+            f.write('full model name:%s\n' % weight)
             f.write('----------------confusion matrix----------------\n')
             cm = metrics.confusion_matrix(test_labels, pred_labels)
             f.write(str(cm))
@@ -189,8 +190,8 @@ if __name__ == '__main__':
             cv2.imwrite(save_image_name, err_img_resize)
 
         # plot show confusion metrics heamap
-        sn.heatmap(cm, annot=True, cmap=plt.cm.Oranges, fmt="d")
-        plt.ylabel('Ground Truth')
-        plt.xlabel('Prediction')
-        plt.title('confusion_matrix')
-        plt.show()
+        # sn.heatmap(cm, annot=True, cmap=plt.cm.Oranges, fmt="d")
+        # plt.ylabel('Ground Truth')
+        # plt.xlabel('Prediction')
+        # plt.title('confusion_matrix')
+        # plt.show()

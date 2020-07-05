@@ -144,8 +144,9 @@ def main():
 
     args = build_argparser().parse_args()
     train_path = os.path.abspath(args.train)
-    start_time = dt.datetime.now().strftime('%Y%m%d_%H%M')
-    dst_path = os.path.join(os.path.abspath(args.dst), start_time)
+    # start_time = dt.datetime.now().strftime('%Y%m%d_%H%M')
+    # dst_path = os.path.join(os.path.abspath(args.dst), start_time)
+    dst_path = os.path.abspath(args.dst)
     model_name = args.m
     pre_weights = args.pw
     batch_size = args.b
@@ -155,10 +156,12 @@ def main():
     lr_epochs_drop = args.epoch_drop
     global_aug = strong_aug(p=args.aug_prob)
     process_num = args.process_num
-
-    log_dir = os.path.join(dst_path, 'log')
+    log_dir = os.path.join(dst_path, 'train_log')
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
+    model_dir = os.path.join(dst_path, 'model')
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
 
     # prepare data
     classes = sorted(os.listdir(train_path))
@@ -192,7 +195,7 @@ def main():
 
     save_name_loss = 'vloss{val_loss:.4f}.h5' if valid_flag else 'loss{loss:.4f}.h5'
     save_name = model_name + '_ep{epoch:02d}_' + save_name_loss
-    full_save_name = os.path.join(dst_path, save_name)
+    full_save_name = os.path.join(model_dir, save_name)
 
     # keras config
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
@@ -227,7 +230,8 @@ def main():
             TensorBoard(log_dir=log_dir),
             ModelCheckpoint(full_save_name, monitor='val_loss' if valid_flag else 'loss',
                             verbose=0, save_best_only=True, save_weights_only=True),
-            CSVLogger(os.path.join(dst_path, "%s_%s.csv" % (model_name, start_time)))
+            # CSVLogger(os.path.join(dst_path, "%s_%s.csv" % (model_name, start_time)))
+            CSVLogger(os.path.join(dst_path, "%s.csv" % model_name))
         ]
 
         # Initialize train data generator
@@ -263,7 +267,7 @@ def main():
 
         # save last epoch weight
         save_name = model_name + '_ep_last.h5'
-        full_save_name = os.path.join(dst_path, save_name)
+        full_save_name = os.path.join(model_dir, save_name)
         model.save_weights(full_save_name)
 
     K.clear_session()
