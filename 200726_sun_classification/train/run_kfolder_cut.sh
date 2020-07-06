@@ -1,8 +1,8 @@
 #!/bin/bash
 # train
-TRAIN="/home/xuxin/Desktop/continuum/train"
-TEST="/home/xuxin/Desktop/continuum/val"
-DST="/home/xuxin/Desktop/log"
+TRAIN="/home/dls1/simple_data/data_gen/0705_con/train"
+TEST="/home/dls1/simple_data/data_gen/0705_con/test"
+DST="/home/dls1/simple_data/train_log"
 MODEL="xception"
 EPOCH=30
 BATCH=10
@@ -12,7 +12,7 @@ AUG=0.75
 CUT=0.75
 GPU="0"
 
-TIME=$(date "+%m%d_%H%M")
+TIME=$(date "+%Y%m%d_%H%M")
 DST_TIME=$DST/$TIME
 python train_kfolder_cut.py -t $TRAIN  \
 -m $MODEL -dst $DST_TIME -gpu $GPU -aug $AUG -cut $CUT \

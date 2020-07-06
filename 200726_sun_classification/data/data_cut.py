@@ -13,7 +13,6 @@ def find_roi_min_area(input_image):
     kernel = np.ones((20, 20), np.uint8)
     min_area = 40
 
-
     gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
     dilation = cv2.dilate(gray, kernel, iterations=2)
     # cv2.imshow('dilate', gray2)
@@ -33,6 +32,7 @@ def find_roi_min_area(input_image):
     contours, hierarchy = cv2.findContours(ddst, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     big_area_list = []
+    find_flag = False
     if len(contours):
         for c in contours:
             area = cv2.contourArea(c)
@@ -43,17 +43,18 @@ def find_roi_min_area(input_image):
                 ymin = np.min(c[:, :, 1])
                 ymax = np.max(c[:, :, 1])
                 big_area_list.append(np.array([xmin, xmax, ymin, ymax]))
-        big_area_array = np.array(big_area_list)
-        xmin = np.min(big_area_array[:, 0])
-        xmax = np.max(big_area_array[:, 1])
-        ymin = np.min(big_area_array[:, 2])
-        ymax = np.max(big_area_array[:, 3])
-    else:
+        if len(big_area_list):
+            find_flag = True
+            big_area_array = np.array(big_area_list)
+            xmin = np.min(big_area_array[:, 0])
+            xmax = np.max(big_area_array[:, 1])
+            ymin = np.min(big_area_array[:, 2])
+            ymax = np.max(big_area_array[:, 3])
+    if not find_flag:
         xmin = 0
         xmax = gray.shape[1]
         ymin = 0
         ymax = gray.shape[0]
-
     return xmin, xmax, ymin, ymax
 
 
