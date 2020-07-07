@@ -32,6 +32,44 @@ def find_roi(image):
     for c in contours:
         area = cv2.contourArea(c)
         if min_area <= area <= max_area:
+            # if area >= max_area:靠近大的排除asdf
+            print(area)
+            cv2.drawContours(image, c, -1, (255, 0, 0), 2)
+
+    # contours, hierarchy = cv2.findContours(contour_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # cv2.drawContours(image, contours, -1, (255, 0, 0), 1)
+    # cv2.drawContours(final_mask, contours, -1, 255, -1)
+    cv2.imshow('image', image)
+    # cv2.imshow('mask', final_mask)
+    return final_mask
+
+# 找出图片中黑色点的大致轮廓
+def find_big_roi(image):
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # config
+    kernel = np.ones((25, 25), np.uint8)
+    min_area = 50
+    contour_mask = np.zeros(gray.shape, dtype=np.uint8)
+    final_mask = contour_mask.copy()
+    dilation = cv2.dilate(gray, kernel, iterations=2)
+    # cv2.imshow('dilate', gray2)
+    erosion = cv2.erode(dilation, kernel, iterations=2)
+    # cv2.imshow('erode', gray2)
+    edges = cv2.absdiff(gray, erosion)
+    # cv2.imshow('edges', edges)
+    x = cv2.Sobel(edges, cv2.CV_16S, 1, 0)
+    y = cv2.Sobel(edges, cv2.CV_16S, 0, 1)
+    absX = cv2.convertScaleAbs(x)
+    absY = cv2.convertScaleAbs(y)
+    dst = cv2.addWeighted(absX, 0.5, absY, 0.5, 0)
+    # cv2.imshow('dst', dst)
+    thresh = np.mean(dst) * 2  # dynamic threshold
+    final_thresh = thresh if thresh < 200 else 200
+    ret, ddst = cv2.threshold(dst, final_thresh, 255, cv2.THRESH_BINARY)
+    contours, hierarchy = cv2.findContours(ddst, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    for c in contours:
+        area = cv2.contourArea(c)
+        if area >= min_area:
             # if area >= max_area:靠近大的排除
             print(area)
             cv2.drawContours(image, c, -1, (255, 0, 0), 2)
@@ -42,6 +80,7 @@ def find_roi(image):
     cv2.imshow('image', image)
     # cv2.imshow('mask', final_mask)
     return final_mask
+
 
 
 if __name__ == '__main__':
@@ -71,10 +110,10 @@ if __name__ == '__main__':
     # pool.close()
     # pool.join()
 
-    input_folder = '/home/xuxin/Desktop/continuum/train/alpha'
+    input_folder = '/home/dls1/simple_data/classification/train/beta'
     for name in os.listdir(input_folder):
         image_name = os.path.join(input_folder, name)
         image = cv2.imread(image_name)
-        find_roi(image)
+        find_big_roi(image)
         if cv2.waitKey(0) == ord('q'):
             break
