@@ -49,10 +49,12 @@ def find_roi(image):
 def find_big_roi(input_image):
     # config
     kernel = np.ones((15, 15), np.uint8)
-    dilate_kernel = np.ones((5, 5), np.uint8)
+    dilate_kernel = np.ones((10, 10), np.uint8)
     min_area = 50
 
     gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
+    height, width = gray.shape
+    gray_average = np.mean(gray)
     contour_mask = np.zeros(gray.shape, dtype=np.uint8)
     contour_mask_copy = contour_mask.copy()
 
@@ -64,28 +66,59 @@ def find_big_roi(input_image):
     ret, thresh = cv2.threshold(edges, thresh_value, 255, cv2.THRESH_BINARY)
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    _thresh_value = np.mean(gray) * 0.9   # dynamic threshold
-    thresh_value = _thresh_value if _thresh_value < 200 else 200
-    ret, thresh = cv2.threshold(gray.copy(), thresh_value, 255, cv2.THRESH_BINARY)
-    cv2.imshow('thresh', thresh)
+    # _thresh_value = np.mean(gray) * 0.9  # dynamic threshold
+    # thresh_value = _thresh_value if _thresh_value < 200 else 200
+    # ret, thresh = cv2.threshold(gray.copy(), thresh_value, 255, cv2.THRESH_BINARY)
+    # cv2.imshow('thresh', thresh)
 
     # 过滤黑点
     valid_contours = []
     for c in contours:
         area = cv2.contourArea(c)
         if area >= min_area:
-            # 过滤边角  看四个角的点是否在区域内
-            # 过滤白点  均值大于一定值
+            # 过滤边角
+            (x, y, _w, _h) = cv2.boundingRect(c)
+            xmax = x + _w
+            ymax = y + _h
+            if x <= 0 or y <= 0 or xmax >= width or ymax >= height:
+                # 过滤在边角
+                continue
+
+            if _w < _h:
+                w = _h
+                h = _w
+            else:
+                w = _w
+                h = _h
+            if w > 4 * h:
+                # 过滤长 / 宽大于4的
+                continue
+
+            # 过滤白点  均值大于一定值  #todo 有很大部分过滤不掉
+
+            gray_zeros = np.zeros(gray.shape, dtype=np.uint8)
+            cv2.drawContours(gray_zeros, [c], -1, 1, thickness=-1)
+            roi = gray_zeros * gray.copy()
+            roi_sum = np.sum(roi)
+            roi[roi >= 1] = 1
+            roi_pixel_num = np.sum(roi)
+            roi_mean = roi_sum / roi_pixel_num
+            if roi_mean > 0.95 * gray_average:
+                continue
+                # cv2.imshow('gray_zeros', gray_zeros)
+                # cv2.waitKey(0)
+
+            print(roi_mean, gray_average)
             valid_contours.append(c)
 
     # 可视化找到的黑点
     cv2.drawContours(contour_mask, valid_contours, -1, 255, -1)
-    contour_mask = cv2.dilate(contour_mask, dilate_kernel, iterations=1)
+    # contour_mask = cv2.dilate(contour_mask, dilate_kernel, iterations=1)
     contour_mask_bgr = cv2.merge([contour_mask, contour_mask_copy, contour_mask_copy])
     dst = cv2.addWeighted(input_image, 0.7, contour_mask_bgr, 0.3, 0)
     cv2.imshow('image', dst)
     cv2.imshow('contour_mask', contour_mask)
-
+    print()
 
 
 if __name__ == '__main__':
@@ -115,7 +148,7 @@ if __name__ == '__main__':
     # pool.close()
     # pool.join()
 
-    input_folder = '/home/xuxin/Desktop/1'
+    input_folder = '/home/dls1/simple_data/classification/test'
     for name in os.listdir(input_folder):
         image_name = os.path.join(input_folder, name)
         image = cv2.imread(image_name)
