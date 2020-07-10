@@ -27,7 +27,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 
 def build_argparser():
     parser = ArgumentParser()
-    parser.add_argument('-m', required=True, type=str, choices=['mobilenet', 'resnet50', 'xception'])
+    parser.add_argument('-m', required=True, type=str)
     parser.add_argument('-pw', help='pretrained_weights path', type=str, default=None)
     parser.add_argument('-b', help='batch size', type=int, default=16)
     parser.add_argument('-e', help='epoch', type=int, default=30)
@@ -224,7 +224,11 @@ def main():
             image_width = 299
             model, process_input = xception(input_size=(image_height, image_width, 3),
                                             num_classes=num_classes)
-
+        elif model_name == 'inception_resnetv2':
+            image_height = 299
+            image_width = 299
+            model, process_input = inresv2(input_size=(image_height, image_width, 3),
+                                            num_classes=num_classes)
         if pre_weights:
             model.load_weights(pre_weights)
         model.compile(optimizer=Adam(lr=lr), loss='categorical_crossentropy', metrics=['accuracy'])

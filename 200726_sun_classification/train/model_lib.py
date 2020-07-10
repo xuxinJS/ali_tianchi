@@ -6,6 +6,8 @@ from keras.applications.resnet50 import ResNet50
 from keras.applications.resnet50 import preprocess_input as resnet50_process
 from keras.applications.xception import Xception
 from keras.applications.xception import preprocess_input as xception_process
+from keras.applications.inception_resnet_v2 import InceptionResNetV2
+from keras.applications.inception_resnet_v2 import preprocess_input as inresv2_process
 
 
 def mobilenet(input_size=(224, 224, 3), num_classes=2):
@@ -38,4 +40,14 @@ def xception(input_size=(299, 299, 3), num_classes=2):
     predictions = Dense(num_classes, activation='softmax')(x)
     model = Model(base_model.input, predictions)
     process = xception_process
+    return model, process
+
+def inresv2(input_size=(299, 299, 3), num_classes=2):
+    base_model = InceptionResNetV2(input_shape=input_size, include_top=False, weights='imagenet')
+    x = base_model.output
+    x = GlobalAveragePooling2D()(x)
+    x = Dropout(0.25)(x)
+    predictions = Dense(num_classes, activation='softmax')(x)
+    model = Model(base_model.input, predictions)
+    process = inresv2_process
     return model, process

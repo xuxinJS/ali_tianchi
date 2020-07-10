@@ -3,13 +3,13 @@
 TRAIN="/home/dls1/simple_data/data_gen/0705_con/train"
 TEST="/home/dls1/simple_data/data_gen/0705_con/test"
 DST="/home/dls1/simple_data/train_log"
-MODEL="xception"
-EPOCH=30
+MODEL="inception_resnetv2"
+EPOCH=40
 BATCH=10
 LR=1e-3
-EPOCH_DROP=10
+EPOCH_DROP=15
 AUG=0.75
-CUT=0.75
+CUT=1
 GPU="0"
 
 TIME=$(date "+%Y%m%d_%H%M")
