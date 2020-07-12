@@ -37,13 +37,19 @@ def build_argparser():
     return parser
 
 
-def strong_aug(p=.5):
+def strong_aug(height, width, p=.5):
+    min_size = min(height, width)
     return Compose([
         Flip(),
         OneOf([
             CLAHE(clip_limit=4, tile_grid_size=(8, 8), p=1),
             RandomBrightnessContrast(brightness_limit=0.15, contrast_limit=0.15, p=1),
             HueSaturationValue(hue_shift_limit=15, sat_shift_limit=15, val_shift_limit=15, p=1),
+            RandomSizedCrop(height=height, width=width, min_max_height=(int(min_size * 0.9), int(min_size * 0.98)),
+                            p=1),
+            GridDistortion(border_mode=0, distort_limit=0.2, p=1),
+            ShiftScaleRotate(shift_limit=0.08, scale_limit=0.08, rotate_limit=5, border_mode=0, p=1),
+            Rotate(limit=13, border_mode=0, p=1),
         ], p=1),
     ], p=p)
 
@@ -124,11 +130,14 @@ class DataGenerator(Sequence):
         x_batch = []
         for image_name in img_names:
             image = cv2.imread(image_name)
-            image = cv2.resize(image, self.dim)
-            if self.aug == True:
+            if image.shape[0] != self.dim[1] or image.shape[1] != self.dim[0]:
+                image = cv2.resize(image, self.dim)
+            if self.aug:
                 data = {"image": image}
                 augmented = global_aug(**data)
                 image = augmented["image"]
+                if image.shape[0] != self.dim[1] or image.shape[1] != self.dim[0]:
+                    image = cv2.resize(image, self.dim)
             if self.save_folder:
                 cv2.imwrite(os.path.join(self.save_folder, os.path.basename(image_name)), image)
             x_batch.append(image)
@@ -154,7 +163,6 @@ def main():
     gpu = args.gpu
     lr = args.learning_rate
     lr_epochs_drop = args.epoch_drop
-    global_aug = strong_aug(p=args.aug_prob)
     process_num = args.process_num
     log_dir = os.path.join(dst_path, 'train_log')
     if not os.path.exists(log_dir):
@@ -223,6 +231,8 @@ def main():
             model.load_weights(pre_weights)
         model.compile(optimizer=Adam(lr=lr), loss='categorical_crossentropy', metrics=['accuracy'])
 
+        global_aug = strong_aug(image_height, image_width, args.aug_prob)
+
         # training
         callbacks_list = [
             LearningRateScheduler(lr_decay),
@@ -243,7 +253,7 @@ def main():
                                            preprocess_input=process_input,
                                            shuffle=True,
                                            aug=True,
-                                           save_folder=None)
+                                           save_folder='/home/xuxin/data/sun_classification/save')
 
         # Initialize validation generator
         if valid_flag:
@@ -271,6 +281,7 @@ def main():
         model.save_weights(full_save_name)
 
     K.clear_session()
+
 
 if __name__ == '__main__':
     sys.exit(main() or 0)

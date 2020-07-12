@@ -1,9 +1,9 @@
 #!/bin/bash
 # train
-TRAIN="/home/dls1/simple_data/data_gen/0702_con/train"
-VAL="/home/dls1/simple_data/data_gen/0702_con/val"
-TEST="/home/dls1/simple_data/data_gen/0702_con/test"
-DST="/home/dls1/simple_data/train_log"
+TRAIN="/home/xuxin/data/sun_classification/data_gen/cut/train"
+VAL="/home/xuxin/data/sun_classification/data_gen/cut/val"
+TEST="/home/xuxin/data/sun_classification/data_gen/cut/test"
+DST="/home/xuxin/data/sun_classification/train_log"
 MODEL="xception"
 EPOCH=30
 BATCH=10
@@ -12,7 +12,7 @@ EPOCH_DROP=10
 AUG=0.75
 GPU="0"
 
-TIME=$(date "+%m%d_%H%M")
+TIME=$(date "+%Y%m%d_%H%M")
 DST_TIME=$DST/$TIME
 python train.py -t $TRAIN -v $VAL \
 -m $MODEL -dst $DST_TIME -gpu $GPU \

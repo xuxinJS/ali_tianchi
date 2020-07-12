@@ -50,7 +50,7 @@ def find_big_roi(input_image):
     # config
     kernel = np.ones((15, 15), np.uint8)
     dilate_kernel = np.ones((10, 10), np.uint8)
-    min_area = 50
+    min_area = 30
 
     gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
     height, width = gray.shape
@@ -61,7 +61,8 @@ def find_big_roi(input_image):
     # 找到黑点
     closed = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel, iterations=2)  # 闭运算，将黑点滤除
     edges = cv2.absdiff(gray, closed)  # 和原图相减得出黑点
-    _thresh_value = np.mean(edges) * 2  # dynamic threshold
+    cv2.imshow('edges', edges)
+    _thresh_value = np.mean(edges) * 2.5  # dynamic threshold
     thresh_value = _thresh_value if _thresh_value < 200 else 200
     ret, thresh = cv2.threshold(edges, thresh_value, 255, cv2.THRESH_BINARY)
     contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -69,19 +70,19 @@ def find_big_roi(input_image):
     # _thresh_value = np.mean(gray) * 0.9  # dynamic threshold
     # thresh_value = _thresh_value if _thresh_value < 200 else 200
     # ret, thresh = cv2.threshold(gray.copy(), thresh_value, 255, cv2.THRESH_BINARY)
-    # cv2.imshow('thresh', thresh)
+    cv2.imshow('thresh', thresh)
 
     # 过滤黑点
     valid_contours = []
     for c in contours:
         area = cv2.contourArea(c)
         if area >= min_area:
-            # 过滤边角
+            # 过滤长条形黑边
             (x, y, _w, _h) = cv2.boundingRect(c)
             xmax = x + _w
             ymax = y + _h
             if x <= 0 or y <= 0 or xmax >= width or ymax >= height:
-                # 过滤在边角
+                # 过滤在边角上的黑边
                 continue
 
             if _w < _h:
@@ -91,11 +92,10 @@ def find_big_roi(input_image):
                 w = _w
                 h = _h
             if w > 4 * h:
-                # 过滤长 / 宽大于4的
+                # 过滤长 / 宽大于4的黑边
                 continue
 
             # 过滤白点  均值大于一定值  #todo 有很大部分过滤不掉
-
             gray_zeros = np.zeros(gray.shape, dtype=np.uint8)
             cv2.drawContours(gray_zeros, [c], -1, 1, thickness=-1)
             roi = gray_zeros * gray.copy()
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     # pool.close()
     # pool.join()
 
-    input_folder = '/home/dls1/simple_data/classification/test'
+    input_folder = '/home/xuxin/data/sun_classification/data/init/test/continuum'
     for name in os.listdir(input_folder):
         image_name = os.path.join(input_folder, name)
         image = cv2.imread(image_name)

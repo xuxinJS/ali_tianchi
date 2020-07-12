@@ -209,5 +209,5 @@ def copy_files(files_type, class_dir, output, prog_bar):
 
 if __name__ == '__main__':
     input_folder = '/home/xuxin/data/sun_classification/data/init/train/continuum'
-    output_folder = '/home/xuxin/Desktop/continuum'
-    ratio_first_name(input=input_folder, output=output_folder, seed=11, ratio=(0.02, 0.01, 0.97))
+    output_folder = '/home/xuxin/data/sun_classification/data_gen/continuum'
+    ratio_first_name(input=input_folder, output=output_folder, seed=11, ratio=(0.6, 0.2, 0.2))
