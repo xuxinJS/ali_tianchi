@@ -22,7 +22,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 
 def build_argparser():
     parser = ArgumentParser()
-    parser.add_argument('-m', required=True, type=str, choices=['mobilenet', 'resnet50', 'xception'])
+    parser.add_argument('-m', required=True, type=str)
     parser.add_argument('-pw', help='pretrained_weights path', type=str, default=None)
     parser.add_argument('-b', help='batch size', type=int, default=16)
     parser.add_argument('-e', help='epoch', type=int, default=30)

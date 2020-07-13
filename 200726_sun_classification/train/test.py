@@ -44,8 +44,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 
 def build_argparser():
     parser = ArgumentParser()
-    parser.add_argument('-m', help='backbone_name', required=True, type=str,
-                        choices=['mobilenet', 'resnet50', 'xception'])
+    parser.add_argument('-m', help='backbone_name', required=True, type=str)
     parser.add_argument('-pw', help='pretrained_weights path', required=True, type=str)
     parser.add_argument('-t', '--test_dir', help='folder of the testing data', required=True, type=str)
     parser.add_argument('-o', help='Path to save log', type=str, default='.')

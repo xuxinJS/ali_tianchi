@@ -17,6 +17,7 @@ def image_cut(roi_obj, image_name, output_name, min_h, min_w):
 
 
 def iter_cut(src, dst):
+    # 迭代文件夹裁剪图片
     if not os.path.exists(dst):
         os.makedirs(dst)
     for i in tqdm(os.listdir(src)):
@@ -33,13 +34,16 @@ def iter_cut(src, dst):
 
 
 def iter_concat(src, dst):
+    # 迭代文件夹将mask和图片拼接在一起
+    if not os.path.exists(dst):
+        os.makedirs(dst)
     for i in tqdm(os.listdir(src)):
         src_path = os.path.join(src, i)
         if os.path.isdir(src_path):
             dst_path = os.path.join(dst, i)
             if not os.path.exists(dst_path):
                 os.makedirs(dst_path)
-            iter_cut(src_path, dst_path)
+            iter_concat(src_path, dst_path)
         else:
             src_name = os.path.join(src, i)
             dst_name = os.path.join(dst, i)
@@ -50,12 +54,31 @@ def iter_concat(src, dst):
             concat_image = roi.concat_data(gray, None, dilate_mask)
             cv2.imwrite(dst_name, concat_image)
 
+def iter_mask(src, dst):
+    # 迭代文件夹生成mask
+    if not os.path.exists(dst):
+        os.makedirs(dst)
+    for i in tqdm(os.listdir(src)):
+        src_path = os.path.join(src, i)
+        if os.path.isdir(src_path):
+            dst_path = os.path.join(dst, i)
+            if not os.path.exists(dst_path):
+                os.makedirs(dst_path)
+            iter_mask(src_path, dst_path)
+        else:
+            src_name = os.path.join(src, i)
+            dst_name = os.path.join(dst, i)
+            image = cv2.imread(src_name)
+            ret, mask = roi.find_roi(image, min_area=roi.min_big_roi)
+            dilate_mask = roi.dilate_mask(mask, roi.min_dilate_kernel)
+            cv2.imwrite(dst_name, dilate_mask)
 
 
 if __name__ == '__main__':
     min_height = 299
     min_width = 299
     roi = FindRoi()
-    input_folder = '/home/dls1/simple_data/data_gen/0705_con'
-    output_folder = '/home/dls1/simple_data/data_gen/0705_con_cut'
-    iter_cut(input_folder, output_folder)
+    input_folder = '/home/xuxin/data/sun_classification/data_gen/cut'
+    output_folder = '/home/xuxin/data/sun_classification/data_gen/cut_mask'
+    # iter_cut(input_folder, output_folder)
+    iter_mask(input_folder, output_folder)
