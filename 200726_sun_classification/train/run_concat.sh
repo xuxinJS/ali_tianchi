@@ -1,14 +1,14 @@
 #!/bin/bash
 # train
-TRAIN="/home/xuxin/data/sun_classification/data_gen/cut/train"
-VAL="/home/xuxin/data/sun_classification/data_gen/cut/val"
-TEST="/home/xuxin/data/sun_classification/data_gen/cut/test"
-DST="/home/xuxin/data/sun_classification/train_log"
+TRAIN="/raid/myshare/xuxin/sun/data/gen/0703_con_cut/train"
+VAL="/raid/myshare/xuxin/sun/data/gen/0703_con_cut/val"
+TEST="/raid/myshare/xuxin/sun/data/gen/0703_con_cut/test"
+DST="/raid/myshare/xuxin/sun/log/con_cut"
 MODEL="xception"
 EPOCH=15
-BATCH=10
+BATCH=12
 LR=1e-3
-EPOCH_DROP=10
+EPOCH_DROP=30
 AUG=0.75
 GPU="0"
 
