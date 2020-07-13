@@ -16,6 +16,9 @@ import tensorflow as tf
 import numpy as np
 import datetime as dt
 
+sys.path.append('../data/lib')
+from find_roi import FindRoi
+
 # control CUDA/tensorflow log level
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 
@@ -94,6 +97,7 @@ class DataGenerator(Sequence):
         self.save_folder = save_folder
         self.image_nums = len(self.img_names)
         self.all_index = np.arange(self.image_nums)
+        self.roi = FindRoi()
 
         self.on_epoch_end()
 
@@ -130,17 +134,29 @@ class DataGenerator(Sequence):
         x_batch = []
         for image_name in img_names:
             image = cv2.imread(image_name)
+            # generate mask
+            ret, mask = self.roi.find_roi(image.copy(), self.roi.min_big_roi)
+            dilate_mask = self.roi.dilate_mask(mask, self.roi.min_dilate_kernel)
+            if dilate_mask.shape[0] != self.dim[1] or dilate_mask.shape[1] != self.dim[0]:
+                dilate_mask = cv2.resize(dilate_mask, self.dim)
+
             if image.shape[0] != self.dim[1] or image.shape[1] != self.dim[0]:
                 image = cv2.resize(image, self.dim)
             if self.aug:
-                data = {"image": image}
+                data = {"image": image, "mask": dilate_mask}
                 augmented = global_aug(**data)
-                image = augmented["image"]
-                if image.shape[0] != self.dim[1] or image.shape[1] != self.dim[0]:
-                    image = cv2.resize(image, self.dim)
+                image, dilate_mask = augmented["image"], augmented["mask"]
+                dilate_mask[dilate_mask < 127] = 0
+                dilate_mask[dilate_mask > 127] = 255
+                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+                concat_image = cv2.merge([gray, gray, dilate_mask])
+
+                # final resize
+                if concat_image.shape[0] != self.dim[1] or concat_image.shape[1] != self.dim[0]:
+                    concat_image = cv2.resize(concat_image, self.dim)
             if self.save_folder:
-                cv2.imwrite(os.path.join(self.save_folder, os.path.basename(image_name)), image)
-            x_batch.append(image)
+                cv2.imwrite(os.path.join(self.save_folder, os.path.basename(image_name)), concat_image)
+            x_batch.append(concat_image)
         x_array = self.preprocess_input(np.array(x_batch))
         y_array = to_categorical(np.array(list_labels), num_classes=self.n_classes)
         return x_array, y_array
@@ -231,7 +247,7 @@ def main():
             image_height = 299
             image_width = 299
             model, process_input = inresv2(input_size=(image_height, image_width, 3),
-                                            num_classes=num_classes)
+                                           num_classes=num_classes)
 
         if pre_weights:
             model.load_weights(pre_weights)
