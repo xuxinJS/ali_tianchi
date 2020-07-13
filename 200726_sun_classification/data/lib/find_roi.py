@@ -166,18 +166,18 @@ class FindRoi:
 
 if __name__ == '__main__':
     roi = FindRoi()
-    input_folder = '/home/xuxin/data/sun_classification/data_gen/cut/test/betax'
+    input_folder = '/home/dls1/simple_data/classification/test'
     for name in os.listdir(input_folder):
         image_name = os.path.join(input_folder, name)
         image = cv2.imread(image_name)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        ret, mask = roi.find_roi(image, 5)
-        dilate_mask = roi.dilate_mask(mask, roi.min_dilate_kernel)
-        concat_image = roi.concat_data(gray, None, dilate_mask)
+        ret, mask = roi.find_roi(image, roi.min_roi)
+        dilate_mask = roi.dilate_mask(mask, roi.max_dilate_kernel)
+        # concat_image = roi.concat_data(gray, None, dilate_mask)
 
-        # xmin, xmax, ymin, ymax = roi.valid_coor(dilate_mask, min_height=299, min_width=299)
-        # cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (255, 0, 0), 1)
-        cv2.imshow('image', concat_image)
+        xmin, xmax, ymin, ymax = roi.valid_coor(dilate_mask, min_height=299, min_width=299)
+        cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (255, 0, 0), 1)
+        cv2.imshow('image', image)
         # cv2.imshow('mask', mask)
         # cv2.imshow('dilate_mask', dilate_mask)
         if cv2.waitKey(0) == ord('q'):

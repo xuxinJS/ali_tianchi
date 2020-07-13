@@ -24,8 +24,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # or any {'0', '1', '2'}
 
 def build_argparser():
     parser = ArgumentParser()
-    parser.add_argument('-m', help='backbone_name', required=True, type=str,
-                        choices=['mobilenet', 'resnet50', 'xception'])
+    parser.add_argument('-m', help='backbone_name', required=True, type=str)
     parser.add_argument('-pw', help='pretrained_weights path', required=True, type=str)
     parser.add_argument('-t', '--test_dir', help='folder of the testing data', required=True, type=str)
     parser.add_argument('-o', help='Path to save log', type=str, default='.')
@@ -91,6 +90,12 @@ if __name__ == '__main__':
             image_width = 299
             model, process_input = xception(input_size=(image_height, image_width, 3),
                                             num_classes=class_num)
+        elif backbone_name == 'inception_resnetv2':
+            image_height = 299
+            image_width = 299
+            model, process_input = inresv2(input_size=(image_height, image_width, 3),
+                                            num_classes=class_num)
+
         model.load_weights(weight)
 
         # image_generator = test_generator(test_names, (image_height, image_width), process_input)

@@ -111,15 +111,14 @@ if __name__ == '__main__':
             image_width = 299
             model, process_input = xception(input_size=(image_height, image_width, 3),
                                             num_classes=class_num)
-        model.load_weights(weight)
 
-        # image_generator = test_generator(test_names, (image_height, image_width), process_input)
-        # if save_folder:
-        #     error_folder = op.join(save_folder, 'error')
-        #     good_folder = op.join(save_folder, 'good')
-        #     evaluate_dir_exist_create(error_folder)
-        #     evaluate_dir_exist_create(good_folder)
-        #     occlusion_key = {0: 'no occlusion', 1: 'occlusion'}
+        elif backbone_name == 'inception_resnetv2':
+            image_height = 299
+            image_width = 299
+            model, process_input = inresv2(input_size=(image_height, image_width, 3),
+                                            num_classes=class_num)
+
+        model.load_weights(weight)
 
         for name in tqdm(test_names):
             image = cv2.imread(name)

@@ -17,6 +17,8 @@ def image_cut(roi_obj, image_name, output_name, min_h, min_w):
 
 
 def iter_cut(src, dst):
+    if not os.path.exists(dst):
+        os.makedirs(dst)
     for i in tqdm(os.listdir(src)):
         src_path = os.path.join(src, i)
         if os.path.isdir(src_path):
@@ -54,6 +56,6 @@ if __name__ == '__main__':
     min_height = 299
     min_width = 299
     roi = FindRoi()
-    input_folder = '/home/xuxin/data/sun_classification/data_gen/continuum'
-    output_folder = '/home/xuxin/data/sun_classification/data_gen/cut'
+    input_folder = '/home/dls1/simple_data/data_gen/0705_con'
+    output_folder = '/home/dls1/simple_data/data_gen/0705_con_cut'
     iter_cut(input_folder, output_folder)

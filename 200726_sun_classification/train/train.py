@@ -227,6 +227,12 @@ def main():
             model, process_input = xception(input_size=(image_height, image_width, 3),
                                             num_classes=num_classes)
 
+        elif model_name == 'inception_resnetv2':
+            image_height = 299
+            image_width = 299
+            model, process_input = inresv2(input_size=(image_height, image_width, 3),
+                                            num_classes=num_classes)
+
         if pre_weights:
             model.load_weights(pre_weights)
         model.compile(optimizer=Adam(lr=lr), loss='categorical_crossentropy', metrics=['accuracy'])

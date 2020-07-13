@@ -1,3 +1,4 @@
+# coding=utf-8
 from keras.layers import *
 from keras.models import Model
 from keras.applications.mobilenet import MobileNet
@@ -42,11 +43,12 @@ def xception(input_size=(299, 299, 3), num_classes=2):
     process = xception_process
     return model, process
 
+
 def inresv2(input_size=(299, 299, 3), num_classes=2):
     base_model = InceptionResNetV2(input_shape=input_size, include_top=False, weights='imagenet')
     x = base_model.output
     x = GlobalAveragePooling2D()(x)
-    x = Dropout(0.25)(x)
+    # x = Dropout(rate=0.25)(x)  # rate随机断开的概率
     predictions = Dense(num_classes, activation='softmax')(x)
     model = Model(base_model.input, predictions)
     process = inresv2_process
