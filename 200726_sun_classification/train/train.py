@@ -42,15 +42,19 @@ def strong_aug(height, width, p=.5):
     return Compose([
         Flip(),
         OneOf([
+            Blur(blur_limit=5, p=1),
             CLAHE(clip_limit=4, tile_grid_size=(8, 8), p=1),
-            RandomBrightnessContrast(brightness_limit=0.15, contrast_limit=0.15, p=1),
-            HueSaturationValue(hue_shift_limit=15, sat_shift_limit=15, val_shift_limit=15, p=1),
+            RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=1),
+            HueSaturationValue(hue_shift_limit=10, sat_shift_limit=10, val_shift_limit=10, p=1),
+        ], p=0.85),
+        OneOf([
             RandomSizedCrop(height=height, width=width, min_max_height=(int(min_size * 0.9), int(min_size * 0.98)),
                             p=1),
+            ElasticTransform(alpha_affine=12, border_mode=0, p=1),
             GridDistortion(border_mode=0, distort_limit=0.2, p=1),
             ShiftScaleRotate(shift_limit=0.08, scale_limit=0.08, rotate_limit=5, border_mode=0, p=1),
-            Rotate(limit=13, border_mode=0, p=1),
-        ], p=1),
+            Rotate(limit=15, border_mode=0, p=1),
+        ], p=0.85)
     ], p=p)
 
 
@@ -231,7 +235,7 @@ def main():
             image_height = 299
             image_width = 299
             model, process_input = inresv2(input_size=(image_height, image_width, 3),
-                                            num_classes=num_classes)
+                                           num_classes=num_classes)
 
         if pre_weights:
             model.load_weights(pre_weights)
