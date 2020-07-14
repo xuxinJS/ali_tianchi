@@ -1,6 +1,5 @@
 待做：
-    将小黑点切下来，然后作为噪点添加到图片上-->样本均衡
-    换有attention的模型
+    b：原图  G：显示小黑点的mask R：大黑点的mask
+    分析出beta和betax区别
 
-可能要提升的地方：
-    提高beta的分数
+beta主要和betax混淆
