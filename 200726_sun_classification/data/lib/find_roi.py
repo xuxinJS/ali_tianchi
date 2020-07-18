@@ -5,7 +5,7 @@ import numpy as np
 
 class FindRoi:
     def __init__(self):
-        self.min_roi = 7  # 最小黑点的面积
+        self.min_roi = 15  # 最小黑点的面积
         self.min_big_roi = 20  # 大黑点的最小面积
         self.min_dilate_kernel = np.ones((10, 10), np.uint8)
         self.max_dilate_kernel = np.ones((40, 40), np.uint8)
@@ -22,7 +22,7 @@ class FindRoi:
         Returns:
             找到的黑点的mask
         """
-        kernel = np.ones((15, 15), np.uint8)
+        kernel = np.ones((10, 10), np.uint8)
         gray = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
         height, width = gray.shape
         gray_average = np.mean(gray)
@@ -50,23 +50,25 @@ class FindRoi:
                     area_valid_flag = True
 
             if area_valid_flag:
-                # 过滤长条形黑边
-                (x, y, _w, _h) = cv2.boundingRect(c)
-
                 # 过滤在边角上的黑边
+                (x, y, _w, _h) = cv2.boundingRect(c)
+                min_gap = 3
                 xmax = x + _w
                 ymax = y + _h
-                if x <= 2 or y <= 2 or xmax >= width - 2 or ymax >= height - 2:
+                # print(x, y, xmax, ymax)
+                if x <= min_gap or y <= min_gap or xmax >= width - min_gap or ymax >= height - min_gap:
                     continue
 
-                # 过滤长 / 宽大于4的黑边
-                if _w < _h:
-                    w = _h
-                    h = _w
+                # 最小外接矩形：过滤长 / 宽大于4的黑边
+                rect = cv2.minAreaRect(c)
+                (_cen_x, _cen_y), (_min_w, _min_h), roi_angle = rect
+                if _min_w >= _min_h:
+                    min_w = _min_w
+                    min_h = _min_h
                 else:
-                    w = _w
-                    h = _h
-                if w > 4 * h:
+                    min_w = _min_h
+                    min_h = _min_w
+                if min_w > 4 * min_h:
                     continue
 
                 # 过滤白点  均值大于一定值
@@ -89,6 +91,7 @@ class FindRoi:
         # dst = cv2.addWeighted(input_image, 0.7, contour_mask_bgr, 0.3, 0)
         # cv2.imshow('image', dst)
         # cv2.imshow('contour_mask', contour_mask)
+        # print(  )
         return find_roi_flag, contour_mask
 
     def dilate_mask(self, mask, dilate_kernel):
@@ -166,19 +169,29 @@ class FindRoi:
 
 if __name__ == '__main__':
     roi = FindRoi()
-    input_folder = '/home/xuxin/data/sun_classification/data_gen/cut/val/betax'
+    input_folder = '/home/xuxin/data/tianchi/sun_classification/data_gen/con_split/val/alpha'
+    input_folder2 = '/home/xuxin/data/tianchi/sun_classification/data_gen/mag_split/val/alpha'
     for name in os.listdir(input_folder):
         image_name = os.path.join(input_folder, name)
         image = cv2.imread(image_name)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        ret, mask = roi.find_roi(image, roi.min_big_roi)
+
+        image_name2 = os.path.join(input_folder2, name)
+        image2 = cv2.imread(image_name2)
+        gray2 = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
+
+        ret, mask = roi.find_roi(image, min_area=roi.min_roi)
         dilate_mask = roi.dilate_mask(mask, roi.min_dilate_kernel)
         concat_image = roi.concat_data(gray, None, dilate_mask)
+        concat_image2 = roi.concat_data(gray2, None, dilate_mask)
 
-        # xmin, xmax, ymin, ymax = roi.valid_coor(dilate_mask, min_height=299, min_width=299)
-        # cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (255, 0, 0), 1)
-        # cv2.imshow('image', image)
+        coor_mask = roi.dilate_mask(mask, roi.max_dilate_kernel)
+        xmin, xmax, ymin, ymax = roi.valid_coor(coor_mask, min_height=299, min_width=299)
+        cv2.rectangle(concat_image, (xmin, ymin), (xmax, ymax), (255, 0, 0), 1)
+        cv2.rectangle(concat_image2, (xmin, ymin), (xmax, ymax), (255, 0, 0), 1)
+        cv2.imshow('image', concat_image)
+        cv2.imshow('image2', concat_image2)
         # cv2.imshow('mask', mask)
-        cv2.imshow('concat_image', concat_image)
+        # cv2.imshow('concat_image', concat_image)
         if cv2.waitKey(0) == ord('q'):
             break

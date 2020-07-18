@@ -1,5 +1,7 @@
 待做：
-    b：原图  G：显示小黑点的mask R：大黑点的mask
-    分析出beta和betax区别
+    清洗数据
+    找更强力的模型
 
-beta主要和betax混淆
+已完成：
+    b：con图  G：mag图 R：mask
+    分析出beta和betax区别：在mag上

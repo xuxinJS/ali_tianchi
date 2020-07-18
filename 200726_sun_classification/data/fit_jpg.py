@@ -1,5 +1,5 @@
 # coding=utf-8
-
+# 将fit后缀的文件转为jpg
 import os
 import cv2
 import warnings
