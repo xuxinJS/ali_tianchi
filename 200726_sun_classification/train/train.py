@@ -43,9 +43,9 @@ def strong_aug(height, width, p=.5):
         Flip(),
         OneOf([
             Blur(blur_limit=5, p=1),
-            CLAHE(clip_limit=4, tile_grid_size=(8, 8), p=1),
-            RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=1),
-            HueSaturationValue(hue_shift_limit=10, sat_shift_limit=10, val_shift_limit=10, p=1),
+            CLAHE(clip_limit=3, tile_grid_size=(8, 8), p=1),
+            RandomBrightnessContrast(brightness_limit=0.05, contrast_limit=0.05, p=1),
+            HueSaturationValue(hue_shift_limit=5, sat_shift_limit=5, val_shift_limit=5, p=1),
         ], p=0.85),
         OneOf([
             RandomSizedCrop(height=height, width=width, min_max_height=(int(min_size * 0.9), int(min_size * 0.98)),
